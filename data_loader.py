@@ -13,11 +13,10 @@ import json
 
 import kaldiio
 from tqdm import tqdm
-
+from text import text_to_sequence
 
 class BaseLoader(torch.utils.data.Dataset):
-    def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str):
+    def __init__(self, utts: str, hparams, feats_scp: str, utt2text:str):
         """
         :param utts: file path. A list of utts for this loader. These are the only utts that this loader has access.
         This loader only deals with text, duration and feats. Other files despite `utts` can be larger.
@@ -25,10 +24,8 @@ class BaseLoader(torch.utils.data.Dataset):
         self.n_mel_channels = hparams.n_mel_channels
         self.sampling_rate = hparams.sampling_rate
         self.utts = self.get_utts(utts)
-        self.utt2phn, self.phn2id = self.get_utt2phn(utt2phns, phn2id)
-        self.vocab_len = len(self.phn2id.keys())
-        self.utt2phn_dur = self.get_utt2phn_dur(utt2phn_duration)
         self.utt2feat = self.get_utt2feat(feats_scp)
+        self.utt2text = self.get_utt2text(utt2text)
 
     def get_utts(self, utts: str) -> list:
         with open(utts, 'r') as f:
@@ -38,33 +35,17 @@ class BaseLoader(torch.utils.data.Dataset):
             random.shuffle(L)
         return L
 
-    def get_utt2phn(self, utt2phns: str, phn2id: str) -> (dict, dict):
-        res = dict()
-        with open(utt2phns, 'r') as f:
-            for l in f.readlines():
-                res[l.split()[0]] = l.strip().split()[1:]
-
-        res_phn2id = dict()
-        with open(phn2id, 'r') as f:
-            for l in f.readlines():
-                res_phn2id[l.split()[0]] = int(l.strip().split()[1])
-
-        return res, res_phn2id
-
-    def get_utt2phn_dur(self, utt2phn_duration: str) -> dict:
-        res = dict()
-        with open(utt2phn_duration, 'r') as f:
-            for l in f.readlines():
-                uttid = l.split()[0]
-                # map to integer
-                durs = list(map(int, l.strip().split()[1:]))
-                res[uttid] = durs
-        return res
 
     def get_utt2feat(self, feats_scp: str):
         utt2feat = kaldiio.load_scp(feats_scp)  # lazy load mode
         print(f"Succeed reading feats from {feats_scp}")
         return utt2feat
+    
+    def get_utt2text(self, utt2text: str):
+        with open(utt2text, 'r') as f:
+            L = f.readlines()  
+            utt2text = {line.split()[0]: line.strip().split(" ", 1)[1] for line in L}
+        return utt2text
 
     def get_mel_from_kaldi(self, utt):
         feat = self.utt2feat[utt]
@@ -74,14 +55,12 @@ class BaseLoader(torch.utils.data.Dataset):
             return feat
         else:
             return feat.T
-
+    
     def get_text(self, utt):
-        phn_seq = self.utt2phn[utt]
-        phn_id_seq = list(map(lambda x: self.phn2id[x], phn_seq))
-        return torch.LongTensor(phn_id_seq)
-
-    def get_dur_from_kaldi(self, utt):
-        return torch.LongTensor(self.utt2phn_dur[utt])
+        text = self.utt2text[utt]
+        text_norm = text_to_sequence(text)
+        text_norm = torch.IntTensor(text_norm)
+        return text_norm
 
     def __getitem__(self, index):
         res = self.get_mel_text_pair(self.utts[index])
@@ -123,9 +102,7 @@ class SpkIDLoader(BaseLoader):
         assert sum(dur) == mel.shape[1], f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}"
         res = {
             "utt": utt,
-            "phn_ids": phn_ids,
             "mel": mel,
-            "dur": dur,
             "spk_ids": spkid
         }
         return res
@@ -139,20 +116,19 @@ class SpkIDLoader(BaseLoader):
 
 
 class SpkIDLoaderWithEmo(BaseLoader):
-    def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str, utt2spk: str, utt2emo: str):
+    def __init__(self, utts: str, hparams, feats_scp: str, utt2text:str, utt2spk: str, utt2emo: str):
         """
         :param utt2spk: json file path (utt name -> spk id)
         This loader loads speaker as a speaker ID for embedding table
         """
-        super(SpkIDLoaderWithEmo, self).__init__(utts, hparams, feats_scp, utt2phns, phn2id, utt2phn_duration)
+        super(SpkIDLoaderWithEmo, self).__init__(utts, hparams, feats_scp, utt2text)
         self.utt2spk = self.get_utt2spk(utt2spk)
         self.utt2emo = self.get_utt2emo(utt2emo)
 
     def get_utt2spk(self, utt2spk: str) -> dict:
         with open(utt2spk, 'r') as f:
             res = json.load(f)
-        return res
+        return res   
 
     def get_utt2emo(self, utt2emo: str) -> dict:
         with open(utt2emo, 'r') as f:
@@ -161,18 +137,15 @@ class SpkIDLoaderWithEmo(BaseLoader):
 
     def get_mel_text_pair(self, utt):
         # separate filename and text
-        spkid = self.utt2spk[utt]
-        emoid = self.utt2emo[utt]
-        phn_ids = self.get_text(utt)
+        spkid = int(self.utt2spk[utt])
+        emoid = int(self.utt2emo[utt])
+        text = self.get_text(utt)
         mel = self.get_mel_from_kaldi(utt)
-        dur = self.get_dur_from_kaldi(utt)
 
-        assert sum(dur) == mel.shape[1], f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}"
         res = {
             "utt": utt,
-            "phn_ids": phn_ids,
+            "text": text,
             "mel": mel,
-            "dur": dur,
             "spk_ids": spkid,
             "emo_ids": emoid
         }

@@ -108,8 +108,8 @@ if __name__ == "__main__":
                                                                      spk=spk,
                                                                      emo=emo,
                                                                      out_size=out_size,
-                                                                     use_gt_dur=use_gt_dur,
-                                                                     durs=batch['dur_padded'].to(device) if use_gt_dur else None)
+                                                                     use_gt_dur=None,
+                                                                     durs=None)
                 loss = sum([dur_loss, prior_loss, diff_loss])
                 # loss = sum([dur_loss, diff_loss])
                 loss.backward()
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             for i, item in enumerate(test_batch):
                 # print(item)
-                x = item['phn_ids'].to(torch.long).unsqueeze(0).to(device)
+                x = item['text'].to(torch.long).unsqueeze(0).to(device)
                 if not hps.xvector:
                     spk = item['spk_ids']
                     spk = torch.LongTensor([spk]).to(device)

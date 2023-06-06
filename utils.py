@@ -139,9 +139,7 @@ def get_correct_class(hps, train=True):
             dataset = loader(utts=hps.data.train_utts,
                              hparams=hps.data,
                              feats_scp=hps.data.train_feats_scp,
-                             utt2phns=hps.data.train_utt2phns,
-                             phn2id=hps.data.phn2id,
-                             utt2phn_duration=hps.data.train_utt2phn_duration,
+                             utt2text=hps.data.train_utt2phns,
                              utt2spk=hps.data.train_utt2spk,
                              utt2emo=hps.data.train_utt2emo)
     else:
@@ -169,9 +167,7 @@ def get_correct_class(hps, train=True):
             dataset = loader(utts=hps.data.val_utts,
                              hparams=hps.data,
                              feats_scp=hps.data.val_feats_scp,
-                             utt2phns=hps.data.val_utt2phns,
-                             phn2id=hps.data.phn2id,
-                             utt2phn_duration=hps.data.val_utt2phn_duration,
+                             utt2text=hps.data.val_utt2phns,
                              utt2spk=hps.data.val_utt2spk,
                              utt2emo=hps.data.val_utt2emo)
     return dataset, collate(), model

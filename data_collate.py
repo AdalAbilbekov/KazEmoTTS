@@ -25,14 +25,14 @@ class BaseCollate:
         """
         utt = list(map(lambda x: x['utt'], batch))
         input_lengths, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([len(x['phn_ids']) for x in batch]),
+            torch.LongTensor([len(x['text']) for x in batch]),
             dim=0, descending=True)
         max_input_len = input_lengths[0]
 
         text_padded = torch.LongTensor(len(batch), max_input_len)
         text_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
-            text = batch[ids_sorted_decreasing[i]]['phn_ids']
+            text = batch[ids_sorted_decreasing[i]]['text']
             text_padded[i, :text.size(0)] = text
 
         # Right zero-pad mel-spec
@@ -51,12 +51,6 @@ class BaseCollate:
             mel_padded[i, :, :mel.size(1)] = mel
             output_lengths[i] = mel.size(1)
 
-        dur_padded = torch.LongTensor(len(batch), max_input_len)
-        dur_padded.zero_()
-        for i in range(len(ids_sorted_decreasing)):
-            dur = batch[ids_sorted_decreasing[i]]['dur']
-            dur_padded[i, :dur.size(0)] = dur
-
         utt_name = np.array(utt)[ids_sorted_decreasing].tolist()
         if isinstance(utt_name, str):
             utt_name = [utt_name]
@@ -67,7 +61,6 @@ class BaseCollate:
             "input_lengths": input_lengths,
             "mel_padded": mel_padded,
             "output_lengths": output_lengths,
-            "dur_padded": dur_padded
         }
         return res, ids_sorted_decreasing
 
@@ -86,6 +79,7 @@ class SpkIDCollate(BaseCollate):
 class SpkIDCollateWithEmo(BaseCollate):
     def __call__(self, batch, *args, **kwargs):
         base_data, ids_sorted_decreasing = self.collate_text_mel(batch)
+
         spk_ids = torch.LongTensor(list(map(lambda x: x["spk_ids"], batch)))
         spk_ids = spk_ids[ids_sorted_decreasing]
         emo_ids = torch.LongTensor(list(map(lambda x: x['emo_ids'], batch)))
@@ -106,8 +100,8 @@ class XvectorCollate(BaseCollate):
             "xvector": xvectors
         })
         return base_data
- 
 
+    
 class SpkIDCollateWithPE(BaseCollate):
     def __call__(self, batch, *args, **kwargs):
         base_data, ids_sorted_decreasing = self.collate_text_mel(batch)

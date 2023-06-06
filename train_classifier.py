@@ -13,10 +13,13 @@ from model.classifier import SpecClassifier
 from text.symbols import symbols
 from model.utils import sequence_mask, generate_path
 import utils
+import wandb
 
 
-def feed_model(model, gradtts_uncond_model, x, x_lengths, y, y_lengths, durs, emo_label, spk, criterion=torch.nn.CrossEntropyLoss()):
+def feed_model(model, gradtts_uncond_model, x, x_lengths, y, y_lengths, emo_label, spk, criterion=torch.nn.CrossEntropyLoss()):
     with torch.no_grad():
+        import pdb
+        #xpdb.set_trace()
         x, x_lengths, y, y_lengths = gradtts_uncond_model.relocate_input([x, x_lengths, y, y_lengths])  # y: B, 80, L
 
         spk = gradtts_uncond_model.spk_emb(spk)
@@ -30,8 +33,7 @@ def feed_model(model, gradtts_uncond_model, x, x_lengths, y, y_lengths, durs, em
 
         y_mask = sequence_mask(y_lengths, y_max_length).unsqueeze(1).to(x_mask)
         attn_mask = x_mask.unsqueeze(-1) * y_mask.unsqueeze(2)
-
-        attn = generate_path(durs, attn_mask.squeeze(1)).detach()
+        attn = generate_path(logw, attn_mask.squeeze(1)).detach()
         mu_y = torch.matmul(attn.squeeze(1).transpose(1, 2), mu_x.transpose(1, 2))  # here mu_x is not cut.
         # mu_y: [B, L, 80]
         mu_y = mu_y.transpose(1, 2)
@@ -64,6 +66,20 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(hps.train.seed)
     np.random.seed(hps.train.seed)
+    print('Initializing wandb...')
+    # start a new wandb run to track this script
+    wandb.init(
+        # set the wandb project where this run will be logged
+        entity="issai_speech",
+        project="emoTTS",
+        # track hyperparameters and run metadata
+        config={
+        "learning_rate": hps.train.learning_rate,
+        "architecture": getattr(hps.model, "classifier_type", 'conformer'),
+        "epochs": hps.train.n_epochs,
+        }
+    )
+    
 
     print('Initializing logger...')
     log_dir = hps.model_dir
@@ -78,7 +94,7 @@ if __name__ == "__main__":
     loader = DataLoader(dataset=train_dataset, batch_size=hps.train.batch_size,
                         collate_fn=batch_collate, drop_last=True,
                         num_workers=4, shuffle=False)  # NOTE: if on server, worker can be 4
-
+ 
     print('Initializing model...')
     gradtts_uncond_model = gradtts_uncond_model(**hps.model).to(device)
     gradtts_uncond_model.eval()
@@ -113,7 +129,7 @@ if __name__ == "__main__":
                          global_step=0, dataformats='HWC')
         save_plot(mel.squeeze(), f'{log_dir}/original_{i}.png')
 
-    gradtts_uncond_model, *_ = utils.load_checkpoint(utils.latest_checkpoint_path("logs/EmotionDataNewSplit_gt_dur_uncond/", "EMA_grad_*.pt"), gradtts_uncond_model, None)
+    gradtts_uncond_model, *_ = utils.load_checkpoint(utils.latest_checkpoint_path("logs/29_04", "grad_*.pt"), gradtts_uncond_model, None)
     utils.save_checkpoint(gradtts_uncond_model, optimizer, None, None, checkpoint_path=f"{log_dir}/grad_uncond.pt")
 
     try:
@@ -137,6 +153,7 @@ if __name__ == "__main__":
         dur_losses = []
         prior_losses = []
         diff_losses = []
+        loss = 0
         with tqdm(loader, total=len(train_dataset) // hps.train.batch_size) as progress_bar:
             for batch_idx, batch in enumerate(progress_bar):
                 model.zero_grad()
@@ -144,7 +161,7 @@ if __name__ == "__main__":
                                batch['input_lengths'].to(device)
                 y, y_lengths = batch['mel_padded'].to(device), \
                                batch['output_lengths'].to(device)
-                durs = batch['dur_padded'].to(device)
+                #durs = batch['dur_padded'].to(device)
                 if hps.xvector:
                     spk = batch['xvector'].to(device)
                 else:
@@ -153,18 +170,9 @@ if __name__ == "__main__":
                 if y_lengths.max() < 180:
                     print(y_lengths)
                     continue
-
-                # dur_loss, prior_loss, diff_loss = model.compute_loss(x, x_lengths,
-                #                                                      y, y_lengths,
-                #                                                      spk=spk,
-                #                                                      emo=emo,
-                #                                                      out_size=out_size,
-                #                                                      use_gt_dur=use_gt_dur,
-                #                                                      durs=batch['dur_padded'].to(device) if use_gt_dur else None)
-
                 # ====== begin training procedures. Copied from GradTTS.compute_loss
                 classification_logits, classification_loss, t = feed_model(model, gradtts_uncond_model,
-                                                                        x, x_lengths, y, y_lengths, durs, emo_label, spk, criterion)
+                                                                        x, x_lengths, y, y_lengths, emo_label, spk, criterion)
                 # print(classification_logits)
                 # ========================================
 
@@ -182,14 +190,16 @@ if __name__ == "__main__":
                 #                   global_step=iteration)
                 logger.add_scalar('training/grad_norm',grad_norm,
                                   global_step=iteration)
+                loss += classification_loss.item()
 
                 if batch_idx % 5 == 0:
                     msg = f'Epoch: {epoch}, iteration: {iteration} | CE loss : {classification_loss.item()}'
+                    
                     # logger_text.info(msg)
                     progress_bar.set_description(msg)
 
                 iteration += 1
-
+        wandb.log({"CE loss": loss / len(train_dataset)})
         log_msg = 'Epoch %d: duration loss = %.3f ' % (epoch, float(np.mean(dur_losses)))
         log_msg += '| prior loss = %.3f ' % np.mean(prior_losses)
         log_msg += '| diffusion loss = %.3f\n' % np.mean(diff_losses)
@@ -201,10 +211,11 @@ if __name__ == "__main__":
 
         model.eval()
         print('Synthesis...')
+        loss = 0
         with torch.no_grad():
             for i, item in enumerate(test_batch):
                 # print(item)
-                x = item['phn_ids'].to(torch.long).unsqueeze(0).to(device)
+                x = item['text'].to(torch.long).unsqueeze(0).to(device)
                 y = item['mel'].unsqueeze(0).to(device)
                 if not hps.xvector:
                     spk = item['spk_ids']
@@ -214,7 +225,7 @@ if __name__ == "__main__":
                     spk = spk.unsqueeze(0).to(device)
                 emo_label = item['emo_ids']
                 emo_label = torch.LongTensor([emo_label]).to(device)
-                durs = item['dur'].unsqueeze(0).to(device)
+                #durs = item['dur'].unsqueeze(0).to(device)
 
                 # emo = emo.unsqueeze(0).to(device)
 
@@ -224,16 +235,19 @@ if __name__ == "__main__":
                     continue
 
                 classification_logits, classification_loss, t = feed_model(model, gradtts_uncond_model, x, x_lengths,
-                                                                        y, y_lengths, durs, emo_label, spk, criterion)
+                                                                        y, y_lengths, emo_label, spk, criterion)
                 # (time, 1/0). 1 for correct classification. 0 for wrong.
                 classification_pred = classification_logits.argmax(1).cpu().numpy().tolist()
                 t = t.cpu().numpy().tolist()
                 emo_label = emo_label.repeat_interleave(classification_logits.shape[0] // len(emo_label))
                 classification_gt = emo_label.cpu().numpy().tolist()
+                loss += classification_loss.item()
                 # print(classification_gt, classification_pred)
                 record = [1 if classification_pred[i] == classification_gt[i] else 0 for i in range(len(classification_pred))]
                 for i in range(len(classification_pred)):
                     print(f"Epoch {epoch}: At time {t[i]}, Classification {record[i]}")
+            wandb.log({"Eval CE loss": loss/ len(test_dataset)})
+
 
         ckpt = model.state_dict()
         # torch.save(ckpt, f=f"{log_dir}/classifier_{epoch}.pt")
