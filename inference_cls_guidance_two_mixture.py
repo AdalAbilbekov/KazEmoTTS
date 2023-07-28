@@ -75,6 +75,9 @@ def evaluate(hps, args, ckpt, feats_dir):
             elif batch_idx >= args.max_utt_num:
                 break
             # ==================================================
+            '''script
+            python inference_cls_guidance_two_mixture.py -c "configs/classifier.json" -m "14.07" --use-control-emo true --control-emo-id1 3 --control-emo-id2 0 --emo1-weight 0.5
+            '''
 
             x, x_lengths = batch['text_padded'].to(device), batch['input_lengths'].to(device)
 
@@ -147,6 +150,7 @@ def evaluate(hps, args, ckpt, feats_dir):
 
 if __name__ == '__main__':
     hps, args = utils.get_hparams_decode_two_mixture()
+    print(args)
     ckpt = utils.latest_checkpoint_path(hps.model_dir, "classifier_*.pt")
 
     # if args.use_control_spk:

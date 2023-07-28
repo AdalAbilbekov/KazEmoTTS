@@ -267,11 +267,11 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path)
                 'learning_rate': learning_rate}, checkpoint_path)
 
 
-def get_hparams_decode():
+def get_hparams_decode(model_dir=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default="./configs/base.json",
+    parser.add_argument('-c', '--config', type=str, default="./configs/train_grad.json",
                         help='JSON file for configuration')
-    parser.add_argument('-m', '--model', type=str, required=True,
+    parser.add_argument('-m', '--model', type=str,  default=model_dir,
                         help='Model name')
     parser.add_argument('-s', '--seed', type=int, default=1234)
     parser.add_argument('--dataset', choices=['train', 'val'], default='val', type=str, help='which dataset to use')

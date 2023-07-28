@@ -5,7 +5,7 @@ from text import cmudict
 _pad        = '_'
 _punctuation = '!\'(),.:;? '
 _special = '-'
-_letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+_letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzАӘБВГҒДЕЁЖЗИЙКҚЛМНҢОӨПРСТУҰҮФХҺЦЧШЩЪЫІЬЭЮЯаәбвгғдеёжзийкқлмнңоөпрстуұүфхһцчшщъыіьэюя'
 
 # Prepend "@" to ARPAbet symbols to ensure uniqueness:
 _arpabet = ['@' + s for s in cmudict.valid_symbols]

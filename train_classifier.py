@@ -1,3 +1,6 @@
+'''
+python train_classifier.py -m "logs/14_07" -c "configs/train_grad.json"
+'''
 import numpy as np
 from tqdm import tqdm
 
@@ -129,7 +132,7 @@ if __name__ == "__main__":
                          global_step=0, dataformats='HWC')
         save_plot(mel.squeeze(), f'{log_dir}/original_{i}.png')
 
-    gradtts_uncond_model, *_ = utils.load_checkpoint(utils.latest_checkpoint_path("logs/29_04", "grad_*.pt"), gradtts_uncond_model, None)
+    gradtts_uncond_model, *_ = utils.load_checkpoint(utils.latest_checkpoint_path("logs/14_07/", "EMA_grad_*.pt"), gradtts_uncond_model, None)
     utils.save_checkpoint(gradtts_uncond_model, optimizer, None, None, checkpoint_path=f"{log_dir}/grad_uncond.pt")
 
     try:

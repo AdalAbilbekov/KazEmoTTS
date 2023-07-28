@@ -19,10 +19,13 @@ from torch.utils.tensorboard import SummaryWriter
 # from data import TextMelDataset, TextMelBatchCollate
 import data_collate
 import data_loader
-from utils import plot_tensor, save_plot
+from utils_data import plot_tensor, save_plot
 from model.utils import fix_len_compatibility
 from text.symbols import symbols
-import utils
+import utils_data as utils
+import wandb
+
+wandb.init(project='emo_tts', entity='dhcppc0')
 
 
 class ModelEmaV2(torch.nn.Module):
@@ -106,7 +109,7 @@ if __name__ == "__main__":
         print(f"Loaded checkpoint from {epoch_logged} epoch, resuming training.")
         # optimizer.step_num = (epoch_str - 1) * len(train_dataset)
         # optimizer._update_learning_rate()
-        global_step = epoch_logged * len(train_dataset)
+        global_step = epoch_logged * (len(train_dataset)/hps.train.batch_size)
     except:
         print(f"Cannot find trained checkpoint, begin to train from scratch")
         epoch_start = 1
@@ -116,6 +119,7 @@ if __name__ == "__main__":
     ema_model = ModelEmaV2(model, decay=0.9999)  # It's necessary that we put this after loading model.
 
     print('Start training...')
+    used_items = set()
     iteration = global_step
     for epoch in range(epoch_start, hps.train.n_epochs + 1):
         model.train()
@@ -186,10 +190,13 @@ if __name__ == "__main__":
 
         model.eval()
         print('Synthesis...')
+
         with torch.no_grad():
             for i, item in enumerate(test_batch):
-                # print(item)
-                x = item['phn_ids'].to(torch.long).unsqueeze(0).to(device)
+                if item['utt'] + "/truth" not in used_items:
+                    wandb.log({item['utt'] + "/truth" : wandb.Image(plot_tensor(item['mel'].cpu()))})
+                    used_items.add(item['utt'] + "/truth")
+                x = item['text'].to(torch.long).unsqueeze(0).to(device)
                 if not hps.xvector:
                     spk = item['spk_ids']
                     spk = torch.LongTensor([spk]).to(device)
@@ -199,10 +206,13 @@ if __name__ == "__main__":
                 emo = item['emo_ids']
                 emo = torch.LongTensor([emo]).to(device)
                 # emo = emo.unsqueeze(0).to(device)
-
                 x_lengths = torch.LongTensor([x.shape[-1]]).to(device)
                 # print(x.shape, spk.shape)
                 y_enc, y_dec, attn = model(x, x_lengths, spk=spk, emo=emo, n_timesteps=10)
+                wandb.log({
+                    item['utt'] + "/generated": wandb.Image(plot_tensor(y_dec.squeeze().cpu())),
+                    item['utt'] + "/alignment": wandb.Image(plot_tensor(attn.squeeze().cpu()))
+                })                
                 logger.add_image(f'image_{i}/generated_enc',
                                  plot_tensor(y_enc.squeeze().cpu()),
                                  global_step=iteration, dataformats='HWC')
@@ -220,6 +230,14 @@ if __name__ == "__main__":
                           f'{log_dir}/alignment_{i}.png')
 
         ckpt = model.state_dict()
+        wandb.log({
+                "Epoch": epoch,
+                "Step": iteration, 
+                "train_dur_loss": float(np.mean(dur_losses)),
+                "train_prior_loss": np.mean(prior_losses),
+                "train_diff_loss": np.mean(diff_losses),
+            })
+
         # torch.save(ckpt, f=f"{log_dir}/grad_{epoch}.pt")
         utils.save_checkpoint(ema_model, optimizer, learning_rate, epoch, checkpoint_path=f"{log_dir}/EMA_grad_{epoch}.pt")
         utils.save_checkpoint(model, optimizer, learning_rate, epoch, checkpoint_path=f"{log_dir}/grad_{epoch}.pt")

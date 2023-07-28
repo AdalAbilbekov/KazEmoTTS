@@ -39,7 +39,8 @@ def text_to_sequence(text, cleaner_names=["english_cleaners"], dictionary=None):
     while len(text):
         m = _curly_re.match(text)
         if not m:
-            clean_text = _clean_text(text, cleaner_names)
+            #clean_text = _clean_text(text, cleaner_names)
+            clean_text = text
             if dictionary is not None:
                 clean_text = [get_arpabet(w, dictionary) for w in clean_text.split(" ")]
                 for i in range(len(clean_text)):

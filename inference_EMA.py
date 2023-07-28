@@ -1,3 +1,7 @@
+'''
+python inference_EMA.py -с configs/train_grad.json -m "logs/14_07"
+'''
+
 import argparse
 import json
 import datetime as dt
@@ -124,6 +128,8 @@ def evaluate(hps, args, ckpt, feats_dir):
 
 if __name__ == '__main__':
     hps, args = utils.get_hparams_decode()
+    print(args)
+    print("MODEL", hps.model_dir, "EMA_grad_*.pt")
     ckpt = utils.latest_checkpoint_path(hps.model_dir, "EMA_grad_*.pt")
 
     if args.use_control_spk:
