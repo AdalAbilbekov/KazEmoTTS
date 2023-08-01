@@ -63,11 +63,15 @@ def transliteration_cleaners(text):
     text = collapse_whitespace(text)
     return text
 
+def replace_english_words(text):
+    text = text.replace("bluetooth не usb", "блютуз не юэсби").replace("mega silk way", "мега силк уэй")
+    return text
 
 def english_cleaners(text):
 #    text = convert_to_ascii(text)
     text = lowercase(text)
 #    text = expand_numbers(text)
     text = expand_abbreviations(text)
+    text = replace_english_words(text)
     text = collapse_whitespace(text)
     return text.replace("c", "с").strip()
