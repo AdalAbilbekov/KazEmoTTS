@@ -65,9 +65,9 @@ def transliteration_cleaners(text):
 
 
 def english_cleaners(text):
-    text = convert_to_ascii(text)
+#    text = convert_to_ascii(text)
     text = lowercase(text)
-    text = expand_numbers(text)
+#    text = expand_numbers(text)
     text = expand_abbreviations(text)
     text = collapse_whitespace(text)
-    return text
+    return text.replace("c", "с").strip()
