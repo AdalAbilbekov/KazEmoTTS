@@ -175,7 +175,7 @@ def get_correct_class(hps, train=True):
 
 def get_hparams(init=True):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default="./configs/base.json",
+    parser.add_argument('-c', '--config', type=str, default="./configs/train_grad.json",
                         help='JSON file for configuration')
     parser.add_argument('-m', '--model', type=str, required=True,
                         help='Model name')
@@ -274,14 +274,6 @@ def get_hparams_decode(model_dir=None):
     parser.add_argument('-m', '--model', type=str,  default=model_dir,
                         help='Model name')
     parser.add_argument('-s', '--seed', type=int, default=1234)
-    parser.add_argument('--dataset', choices=['train', 'val'], default='val', type=str, help='which dataset to use')
-    parser.add_argument('--use-control-spk', action='store_true', help='whether to use GT spk or other spk')
-    parser.add_argument('--control-spk-id', default=None, type=int, help='if use control spk, then which spk')
-    parser.add_argument("--use-control-emo", action='store_true')
-    parser.add_argument("--control-emo-id", type=int)
-    parser.add_argument('--control-spk-name', default=None, type=str, help='if use control spk, then which spk')
-    parser.add_argument("--max-utt-num", default=100, type=int, help='maximum utts number to decode')
-    parser.add_argument("--specify-utt-name", default=None, type=str, help='if specified, only decodes for that utt')
     parser.add_argument('-t', "--timesteps", type=int, default=10, help='how many timesteps to perform reverse diffusion')
 
     parser.add_argument("--stoc", action='store_true', default=False, help="Whether to add stochastic term into decoding")
@@ -289,8 +281,9 @@ def get_hparams_decode(model_dir=None):
     parser.add_argument('-n', '--noise', type=float, default=1.5, help='to multiply sigma')
     parser.add_argument('--force-dur', type=str, default=None, help='forced duration file')
 
-    parser.add_argument('--text', type=str, default=None, help="given text file")
-
+    parser.add_argument('-f', '--file', type=str, required=True, help='path to a file with texts to synthesize')
+    parser.add_argument('-r', '--generated_path', type=str, required=True, help='path to a file with texts to synthesize')
+    
     args = parser.parse_args()
     model_dir = os.path.join("./logs", args.model)
 
@@ -307,20 +300,20 @@ def get_hparams_decode(model_dir=None):
     hparams.model_dir = model_dir
     hparams.train.seed = args.seed
 
-    if args.use_control_spk:
-        if hparams.xvector:
-            assert args.control_spk_name is not None
-        else:
-            assert args.control_spk_id is not None
+    # if args.use_control_spk:
+    #     if hparams.xvector:
+    #         assert args.control_spk_name is not None
+    #     else:
+    #         assert args.control_spk_id is not None
 
     return hparams, args
 
 
-def get_hparams_decode_two_mixture():
+def get_hparams_decode_two_mixture(model_dir=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default="./configs/base.json",
+    parser.add_argument('-c', '--config', type=str, default="./configs/train_grad.json",
                         help='JSON file for configuration')
-    parser.add_argument('-m', '--model', type=str, required=True,
+    parser.add_argument('-m', '--model', type=str, required=False, default='/raid/adal_abilbekov/training_emodiff/Emo_diff/logs/logs_train',
                         help='Model name')
     parser.add_argument('-s', '--seed', type=int, default=1234)
     parser.add_argument('--dataset', choices=['train', 'val'], default='val', type=str, help='which dataset to use')
