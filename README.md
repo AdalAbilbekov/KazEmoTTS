@@ -1,5 +1,6 @@
 # KazEmoTTS
 ### Organizing Data
+Firstly need to org
 Files that specify dataset (i.e. comprised of utterances) should be put in `filelists/${name}`. `{name}` is any subdirectory.
 
 Explanation for the files in `filelists/example`:
