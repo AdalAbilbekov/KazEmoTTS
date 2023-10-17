@@ -3,6 +3,7 @@
 import re
 from text import cleaners
 from text.symbols import symbols
+import torch
 
 
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -75,6 +76,14 @@ def sequence_to_text(sequence):
             result += s
     return result.replace('}{', ' ')
 
+def convert_text(string):
+    text_norm = text_to_sequence(string.lower())
+    text_norm = torch.IntTensor(text_norm) 
+    text_len = torch.IntTensor([text_norm.size(0)])
+    text_padded = torch.LongTensor(1, len(text_norm))
+    text_padded.zero_()
+    text_padded[0, :text_norm.size(0)] = text_norm
+    return text_padded, text_len
 
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:

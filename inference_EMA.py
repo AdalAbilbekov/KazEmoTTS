@@ -21,7 +21,7 @@ from attrdict import AttrDict
 from models import Generator as HiFiGAN
 
 
-HIFIGAN_CONFIG = './checkpts/hifigan-config.json'
+HIFIGAN_CONFIG = './configs/hifigan-config.json'
 HIFIGAN_CHECKPT = './checkpts/hifigan.pt'
 
 
@@ -65,10 +65,10 @@ if __name__ == '__main__':
             sid = torch.LongTensor([control_spk_id]).to(device)
             text_padded, text_len = convert_text(text)
             y_enc, y_dec, attn = model.forward(text_padded, text_len, 
-                                        n_timesteps=20, 
+                                        n_timesteps=args.timesteps, 
                                         temperature=args.noise,
                                         stoc=args.stoc, spk=sid,emo=emo, length_scale=1.,
-                                        classifier_free_guidance=100)
+                                        classifier_free_guidance=args.guidance)
         res = y_dec.squeeze().cpu().numpy()
         x = torch.from_numpy(res).cuda().unsqueeze(0)
         y_g_hat = vocoder(x)
