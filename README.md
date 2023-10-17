@@ -1,5 +1,18 @@
 # KazEmoTTS
 
+## Abstract
+
+This study focuses on the creation of the KazEmoTTS dataset, designed for emotional Kazakh text-to-speech
+(TTS) applications. KazEmoTTS is a collection of 54,760 audio-text pairs, with a total duration of 74.85 hours,
+featuring 34.23 hours delivered by a female narrator and 40.62 hours by two male narrators. The list of the
+emotions considered include “neutral”, “angry”, “happy”, “sad”, “scared”, and “surprised”. We also developed a TTS
+model trained on the KazEmoTTS dataset. We conducted both objective and subjective evaluations to assess the
+quality of the synthesized speech.
+
+You are able to listen for samples here: [Demo_link](anonimous4849.github.io)
+
+
+
 ## Installation
 
 First you need to build `monotonic_align` code:
