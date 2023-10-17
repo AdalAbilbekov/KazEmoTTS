@@ -279,10 +279,9 @@ def get_hparams_decode(model_dir=None):
     parser.add_argument("--stoc", action='store_true', default=False, help="Whether to add stochastic term into decoding")
     parser.add_argument("-g", "--guidance", type=float, default=3, help='classifier guidance')
     parser.add_argument('-n', '--noise', type=float, default=1.5, help='to multiply sigma')
-    parser.add_argument('--force-dur', type=str, default=None, help='forced duration file')
 
     parser.add_argument('-f', '--file', type=str, required=True, help='path to a file with texts to synthesize')
-    parser.add_argument('-r', '--generated_path', type=str, required=True, help='path to a file with texts to synthesize')
+    parser.add_argument('-r', '--generated_path', type=str, required=True, help='path to save wav files')
     
     args = parser.parse_args()
     model_dir = os.path.join("./logs", args.model)
