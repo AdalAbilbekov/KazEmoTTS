@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data', type=str, required=True, help='path to the emotional dataset')
     args = parser.parse_args()
     dataset_path = args.data
-    filelists_path = 'filelists_nix/'
+    filelists_path = 'filelists/'
     feats_scp_file = filelists_path + 'feats.scp'
     feats_ark_file = filelists_path + 'feats.ark'
 
