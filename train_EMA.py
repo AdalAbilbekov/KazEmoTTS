@@ -13,10 +13,6 @@ from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-# import params
-# from model import GradTTS
-# from data import TextMelDataset, TextMelBatchCollate
 import data_collate
 import data_loader
 from utils_data import plot_tensor, save_plot
@@ -28,14 +24,10 @@ import utils_data as utils
 class ModelEmaV2(torch.nn.Module):
     def __init__(self, model, decay=0.9999, device=None):
         super(ModelEmaV2, self).__init__()
-        # make a copy of the model for accumulating moving average of weights
-        # self.module = deepcopy(model)
         self.model_state_dict = deepcopy(model.state_dict())
         # self.module.eval()
         self.decay = decay
         self.device = device  # perform ema on different device from model if set
-        # if self.device is not None:
-        #     self.module.to(device=device)
 
     def _update(self, model, update_fn):
         with torch.no_grad():
@@ -104,8 +96,6 @@ if __name__ == "__main__":
         model, optimizer, learning_rate, epoch_logged = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "grad_*.pt"), model, optimizer)
         epoch_start = epoch_logged + 1
         print(f"Loaded checkpoint from {epoch_logged} epoch, resuming training.")
-        # optimizer.step_num = (epoch_str - 1) * len(train_dataset)
-        # optimizer._update_learning_rate()
         global_step = epoch_logged * (len(train_dataset)/hps.train.batch_size)
     except:
         print(f"Cannot find trained checkpoint, begin to train from scratch")
@@ -144,7 +134,6 @@ if __name__ == "__main__":
                                                                      use_gt_dur=use_gt_dur,
                                                                      durs=batch['dur_padded'].to(device) if use_gt_dur else None)
                 loss = sum([dur_loss, prior_loss, diff_loss])
-                # loss = sum([dur_loss, diff_loss])
                 loss.backward()
 
                 enc_grad_norm = torch.nn.utils.clip_grad_norm_(model.encoder.parameters(),
@@ -171,7 +160,6 @@ if __name__ == "__main__":
 
                 if batch_idx % 5 == 0:
                     msg = f'Epoch: {epoch}, iteration: {iteration} | dur_loss: {dur_loss.item()}, prior_loss: {prior_loss.item()}, diff_loss: {diff_loss.item()}'
-                    # logger_text.info(msg)
                     progress_bar.set_description(msg)
 
                 iteration += 1
@@ -201,9 +189,9 @@ if __name__ == "__main__":
                     spk = spk.unsqueeze(0).to(device)
                 emo = item['emo_ids']
                 emo = torch.LongTensor([emo]).to(device)
-                # emo = emo.unsqueeze(0).to(device)
+                
                 x_lengths = torch.LongTensor([x.shape[-1]]).to(device)
-                # print(x.shape, spk.shape)
+                
                 y_enc, y_dec, attn = model(x, x_lengths, spk=spk, emo=emo, n_timesteps=10)           
                 logger.add_image(f'image_{i}/generated_enc',
                                  plot_tensor(y_enc.squeeze().cpu()),
@@ -223,7 +211,6 @@ if __name__ == "__main__":
 
         ckpt = model.state_dict()
 
-        # torch.save(ckpt, f=f"{log_dir}/grad_{epoch}.pt")
         utils.save_checkpoint(ema_model, optimizer, learning_rate, epoch, checkpoint_path=f"{log_dir}/EMA_grad_{epoch}.pt")
         utils.save_checkpoint(model, optimizer, learning_rate, epoch, checkpoint_path=f"{log_dir}/grad_{epoch}.pt")
 

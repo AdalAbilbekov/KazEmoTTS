@@ -7,19 +7,21 @@ import json
 from shutil import copyfile
 import pandas as pd
 import argparse
-
+from text import _clean_text, symbols
+from num2words import num2words
+import re
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data', type=str, required=True, help='path to the emotional dataset')
     args = parser.parse_args()
     dataset_path = args.data
-    filelists_path = 'filelists/all_spk'
+    filelists_path = 'filelists/all_spks/'
     feats_scp_file = filelists_path + 'feats.scp'
     feats_ark_file = filelists_path + 'feats.ark'
 
 
-    spks = ['805570882', '1263201035', '399172782']
+    spks = ['1263201035', '805570882', '399172782']
     train_files = []
     eval_files = []
     for spk in spks:
@@ -52,6 +54,7 @@ if __name__ == '__main__':
                     # Write the features to feats.ark and feats.scp
                     writer[wav_name] = spec
     
+
     emotions = [os.path.basename(x).split("_")[1] for x in glob.glob(dataset_path + '/**/**/*')]
     emotions = sorted(set(emotions))
 
@@ -79,14 +82,21 @@ if __name__ == '__main__':
     
     txt_files = sorted(glob.glob(dataset_path + '/**/**/*.txt'))
     count = 0
+    txt = []
+    basenames = []
     utt2text = {}
     flag = False
     with open(filelists_path + 'text', 'w', encoding='utf-8') as write:
         for txt_path in txt_files:
             basename = os.path.basename(txt_path).replace('.txt', '')
             with open(txt_path, 'r', encoding='utf-8') as f:
-                text = f.read().strip("\n")
-                utt2text[basename] = text                  
+                txt.append(_clean_text(f.read().strip("\n"), cleaner_names=["kazakh_cleaners"]))
+                basenames.append(basename) 
+    output_string = [re.sub('(\d+)', lambda m: num2words(m.group(), lang='kz'), sentence) for sentence in txt]
+    cleaned_txt = []
+    for t in output_string:
+        cleaned_txt.append(''.join([s for s in t if s in symbols]))               
+    utt2text = {basenames[i]: cleaned_txt[i] for i in range(len(cleaned_txt))}
     utt2text = dict(sorted(utt2text.items()))
 
     vocab = set()

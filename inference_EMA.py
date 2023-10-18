@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader
 from text import text_to_sequence, cmudict
 from text.symbols import symbols
 import utils_data
+import re
+from num2words import num2words
 from kaldiio import WriteHelper
 import os
 from tqdm import tqdm
@@ -49,12 +51,20 @@ if __name__ == '__main__':
     with open(args.file, 'r', encoding='utf-8') as f:
         texts = [line.strip() for line in f.readlines()]
 
+    replace_nums = []
+    for i in texts:
+        replace_nums.append(i.split('|', 1))
+
+    nums2word = [re.sub('(\d+)', lambda m: num2words(m.group(), lang='kz'), sentence) for sentence in np.array(replace_nums)[:, 0]]
     # Speakers id.
     # M1 = 0
     # F1 = 1
     # M2 = 2
+    text2speech = []
+    for i, j in zip(nums2word, np.array(replace_nums)[:, 1]):
+        text2speech.append(f'{i}|{j}')
 
-    for i, line in enumerate(texts):
+    for i, line in enumerate(text2speech):
         emo_i = int(line.split('|')[1])
         control_spk_id = int(line.split('|')[2])
         control_emo_id = emos.index(emos[emo_i])

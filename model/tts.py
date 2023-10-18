@@ -9,7 +9,6 @@
 import math
 import random
 
-# import onnx_chainer.export
 import torch
 
 from model import monotonic_align

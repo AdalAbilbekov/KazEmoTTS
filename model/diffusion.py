@@ -130,11 +130,9 @@ class GradLogPEstimator2d(BaseModule):
         self.dim = dim
         self.dim_mults = dim_mults
         self.groups = groups
-        # self.n_spks = n_spks if not isinstance(n_spks, type(None)) else 1
         self.spk_emb_dim = spk_emb_dim
         self.pe_scale = pe_scale
         
-        # if n_spks > 1:
         self.spk_mlp = torch.nn.Sequential(torch.nn.Linear(spk_emb_dim, spk_emb_dim * 4), Mish(),
                                            torch.nn.Linear(spk_emb_dim * 4, n_feats))
         self.time_pos_emb = SinusoidalPosEmb(dim)
@@ -177,9 +175,6 @@ class GradLogPEstimator2d(BaseModule):
         t = self.time_pos_emb(t, scale=self.pe_scale)
         t = self.mlp(t)  # [B, 64]
 
-        # if self.n_spks < 2:
-        #     x = torch.stack([mu, x], 1)
-        # else:
         s = s.unsqueeze(-1).repeat(1, 1, x.shape[-1])
         x = torch.stack([mu, x, s], 1)  # [B, 3, 80, L]
         mask = mask.unsqueeze(1)  # [B, 1, 1, L]
@@ -377,24 +372,17 @@ class Diffusion(BaseModule):
             noise_t = get_noise(time, self.beta_min, self.beta_max, cumulative=False)
             beta_integral_t = get_noise(time, self.beta_min, self.beta_max, cumulative=True)
             bar_alpha_t = math.exp(-beta_integral_t)
-            # print(bar_alpha_t)
 
             # =========== classifier part ==============
             xt = xt.detach()
             xt.requires_grad_(True)
             score_estimate = self.estimator(xt, mask, mu, t, spk)
             x0_hat = (xt + (1-bar_alpha_t) * score_estimate) / math.sqrt(bar_alpha_t)
-            # print(x0_hat)
-            # exit(0)
-            # x0_hat = torch.clamp(x0_hat, -1, 1)
-            # print(x0_hat)
 
             if classifier_type == 'CNN-with-time':
                 raise NotImplementedError
-                # logits = classifier_func(x0_hat.transpose(1, 2), mu.transpose(1, 2), (mask == 1.0).squeeze(1), t=t)
             else:
                 logits = classifier_func(x0_hat.transpose(1, 2), mu.transpose(1, 2), (mask == 1.0).squeeze(1))
-            # print("logits are", logits)
             if classifier_type == 'conformer':  # [B, C]
                 probs = torch.log_softmax(logits, dim=-1)  # [B, C]
             elif classifier_type == 'CNN':
@@ -406,7 +394,6 @@ class Diffusion(BaseModule):
                 #
 
                 probs = torch.log(probs_mean)
-                # print("probs are", probs)
             else:
                 raise NotImplementedError
 

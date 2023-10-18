@@ -67,7 +67,7 @@ def replace_english_words(text):
     text = text.replace("bluetooth не usb", "блютуз не юэсби").replace("mega silk way", "мега силк уэй")
     return text
 
-def english_cleaners(text):
+def kazakh_cleaners(text):
 #    text = convert_to_ascii(text)
     text = lowercase(text)
 #    text = expand_numbers(text)

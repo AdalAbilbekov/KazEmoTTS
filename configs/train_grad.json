@@ -27,7 +27,7 @@
     "val_var_scp": "",
 
     "text_cleaners": [
-      "english_cleaners"
+      "kazakh_cleaners"
     ],
     "max_wav_value": 32768.0,
     "sampling_rate": 22050,

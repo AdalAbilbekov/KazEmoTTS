@@ -39,16 +39,6 @@ def latest_checkpoint_path(dir_path, regex="grad_*.pt"):
     x = f_list[-1]
     return x
 
-
-# def load_checkpoint(logdir, model, num=None):
-#     if num is None:
-#         model_path = latest_checkpoint_path(logdir, regex="grad_*.pt")
-#     else:
-#         model_path = os.path.join(logdir, f"grad_{num}.pt")
-#     print(f'Loading checkpoint {model_path}...')
-#     model_dict = torch.load(model_path, map_location=lambda loc, storage: loc)
-#     model.load_state_dict(model_dict, strict=False)
-#     return model
 def load_checkpoint(checkpoint_path, model, optimizer=None):
     assert os.path.isfile(checkpoint_path)
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')

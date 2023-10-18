@@ -570,10 +570,8 @@ class CNNBlock(nn.Module):
             nn.BatchNorm1d(out_dim,),
             nn.Dropout(p=dropout)
         )
-        # self.cond_layer = nn.Linear(cond_dim, in_dim)
 
     def forward(self, inp):
-        # cond = self.cond_layer(cond)
         out = self.layers(inp)
         return out
 
