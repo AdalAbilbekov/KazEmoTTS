@@ -43,7 +43,7 @@ python train_EMA.py -c <configs/train_grad.json> -m <checkpoint>
 ### Pre-trained stage.
 If you want to use pre-trained model you need to download [checkpoints](https://drive.google.com/file/d/1yfIOoVZEiFflh9494Ul6bUmktYvdM7XM/view?usp=share_link) for TTS model and vocoder.
 
-To run inference use:
+To run inference you need:
 Create a text file with sentences you want to synthesize like `filelists/inference_generated.txt`.
 Specify `txt` file as follows: `text|emotion id|speaker id`.
 Change path to the HiFi-Gan checkpoint in `inference_EMA.py`.
