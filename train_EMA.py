@@ -1,11 +1,3 @@
-# Copyright (C) 2021. Huawei Technologies Co., Ltd. All rights reserved.
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the MIT License.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# MIT License for more details.
-
 import numpy as np
 from tqdm import tqdm
 
@@ -25,7 +17,6 @@ class ModelEmaV2(torch.nn.Module):
     def __init__(self, model, decay=0.9999, device=None):
         super(ModelEmaV2, self).__init__()
         self.model_state_dict = deepcopy(model.state_dict())
-        # self.module.eval()
         self.decay = decay
         self.device = device  # perform ema on different device from model if set
 

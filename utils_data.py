@@ -1,11 +1,3 @@
-# Copyright (C) 2021. Huawei Technologies Co., Ltd. All rights reserved.
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the MIT License.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# MIT License for more details.
-
 import os
 import argparse
 import glob
@@ -16,7 +8,6 @@ import data_loader as loaders
 import data_collate as collates
 import json
 from model import GradTTSXvector, GradTTSWithEmo
-
 import torch
 
 
@@ -288,12 +279,6 @@ def get_hparams_decode(model_dir=None):
     hparams = HParams(**config)
     hparams.model_dir = model_dir
     hparams.train.seed = args.seed
-
-    # if args.use_control_spk:
-    #     if hparams.xvector:
-    #         assert args.control_spk_name is not None
-    #     else:
-    #         assert args.control_spk_id is not None
 
     return hparams, args
 
