@@ -90,7 +90,7 @@ if __name__ == '__main__':
         for txt_path in txt_files:
             basename = os.path.basename(txt_path).replace('.txt', '')
             with open(txt_path, 'r', encoding='utf-8') as f:
-                txt.append(_clean_text(f.read().strip("\n"), cleaner_names=["kazakh_cleaners"]))
+                txt.append(_clean_text(f.read().strip("\n"), cleaner_names=["kazakh_cleaners"]).replace("'", ""))
                 basenames.append(basename) 
     output_string = [re.sub('(\d+)', lambda m: num2words(m.group(), lang='kz'), sentence) for sentence in txt]
     cleaned_txt = []
